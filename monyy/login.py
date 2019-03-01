@@ -3,14 +3,12 @@ from wtforms import StringField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import DataRequired
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash, generate_password_hash
-from .database import User
+from monyy.database import User
 from monyy import db, login_manager
-
 
 @login_manager.user_loader
 def load_user(id):
     return User.query.get(int(id))
-
 
 #Register new user
 def RegisterUser(username, password):
@@ -32,7 +30,6 @@ def RegisterUser(username, password):
         raise Exception('Problem adding user to database!')
     return temp_user
 
-
 #Get user from database
 def GetUser(username, password):
     #Check to see if username is in database
@@ -46,7 +43,6 @@ def GetUser(username, password):
         raise Exception('Incorrect password!')
     #If so, return the current user. 
     return temp_user
-
 
 #hash password
 def HashPassword(password):

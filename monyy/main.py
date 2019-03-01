@@ -1,7 +1,7 @@
 from monyy import app, db
-from .database import *
-from .login import *
-from .db_accessor import *
+from monyy.database import *
+from monyy.login import *
+from monyy.db_accessor import *
 from flask import Flask, render_template, redirect, request
 from flask_login import current_user, login_user, login_required, logout_user
 from datetime import date, datetime
