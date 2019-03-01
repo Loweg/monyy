@@ -7,6 +7,7 @@
     <title>Monyy</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <link rel="stylesheet" type="text/css" href="../static/style.css" />
+    <link rel='shortcut icon' href='../static/favicon.ico'>
     <meta name="viewport" content="width=device-width, initial-scale=1" charset="utf-8"/>
   </head>
 
@@ -130,9 +131,9 @@
             <!-----------
              POPUP FORMS
             ------------->
-            <button style="float:right;"><a href="/help" style="color:#1d1e22;font-size:25px" target="_blank">Help</a></button>
+            <a href="help" class="helplogout" target="_blank">Help</a>
             <p style="float:right;"> </p>
-            <button style="float:right;"><a href="/logout" style="color:#1d1e22;font-size:25px">Logout</a></button>
+            <a href="/logout"  class="helplogout">Logout</a>
 
             <!-- Add Bank Account -->
             <div class="popup" id="add-cash-popup">
@@ -188,8 +189,8 @@
                     <label for="amount"><b>Amount</b></label>
                     <input type="text" placeholder="Enter Transaction Amount" name="amount" id="form-cashtrans-amount" required>
 
-                    <label for="deduction"><b>Deduction?</b></label>
-                    <input type="checkbox" name="deduction" id="form-cashtrans-deduction">
+                    <label for="deduction"><b>Deduction? (Please type "Y" or "N")</b></label>
+                    <input type="text" placeholder="Y/N" name="deduction" id="form-cashtrans-deduction" required>
 
                     <center>
                         <button type="submit" onclick="post('/index/banktrans', 'add_trans')">Add</button>

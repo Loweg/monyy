@@ -41,7 +41,7 @@ def GetUser(username, password):
     if not CheckPassword(temp_user.pass_hash, password):
     #If not, raise "Invalid password" exception.
         raise Exception('Incorrect password!')
-    #If so, return the current user. 
+    #If so, return the current user.
     return temp_user
 
 #hash password

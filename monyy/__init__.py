@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_login import LoginManager
 from flask import Flask
-from flask_login import UserMixin 
+from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import event, func
 from sqlalchemy.engine import Engine

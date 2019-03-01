@@ -2,6 +2,7 @@ body {
     background-color: #1d1e22;
     font-family: "Times New Roman", Times, serif;
     color: white;
+    font-size: 20px;
 
 }
 
@@ -127,6 +128,15 @@ button {
     color: white;
 }
 
+.helplogout {
+    background-color: #d4d4dc;
+    border: none;
+    padding: 5px 10px;
+    font-family: "Times New Roman", Times, serif;
+    color: #1d1e22;
+    float: right;
+}
+
 
 
 /*********
@@ -138,7 +148,9 @@ button {
   position: fixed;
   bottom:0;
   right: 15px;
+  max-height: 75%;
   border: 3px solid #f1f1f1;
+  font-size: 16px;
   /*z-index: 9;*/
 }
 

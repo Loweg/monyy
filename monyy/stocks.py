@@ -74,19 +74,19 @@ def getTaxRate(val):
     taxedAmount = 0
     bracket = [10000, 40000, 80000, 160000, 200000, 500000, 100000000]
     rate = [0.1, 0.12, 0.22, 0.24, 0.32, 0.35, 0.37]
-    
+
     i = 0
     while (val > bracket[i]):
         taxedAmount += bracket[i]*rate[i] #TAX MATH
         val -= bracket[i]
         i+=1
-    
+
     taxedAmount += val*rate[i]
     return taxedAmount
-    
-    
+
+
 #r = int(input("Tax math"))
 #print(getTaxRate(r))
-# print(returnStock('GOOGL'))  
+# print(returnStock('GOOGL'))
 # print(stockPriceOnDay('GOOGL', 2))
 # print(closingPricesFrom('GOOGL', 14))

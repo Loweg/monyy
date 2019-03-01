@@ -1,5 +1,5 @@
 from flask import Flask
-from flask_login import UserMixin 
+from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import event, func
 from sqlalchemy.engine import Engine
@@ -38,7 +38,7 @@ class Account(db.Model):
 
     def __repr__(self):
         return '<Account %r>' % self.account_name
-    
+
 class Transaction(db.Model):
     transaction_id = db.Column(db.Integer, primary_key=True)
     account_id = db.Column(db.Integer, db.ForeignKey(Account.account_id), nullable=False)
@@ -62,7 +62,7 @@ class Transaction(db.Model):
         'Transaction_tag', backref=db.backref('Transaction', uselist=True))
 
     def __repr__(self):
-        return '<Transaction %r>' % self.transaction_type 
+        return '<Transaction %r>' % self.transaction_type
 
 class Bank_account(db.Model):
     bank_account_id = db.Column(db.Integer, primary_key=True)
@@ -145,7 +145,7 @@ class Transaction_bond(db.Model):
     transaction_id = db.Column(db.Integer, db.ForeignKey(
         Transaction.transaction_id), nullable=False)
     bond_id = db.Column(db.Integer, db.ForeignKey(Bond.bond_id), nullable=False)
-    
+
 class Stock(db.Model):
     stock_id = db.Column(db.Integer, primary_key=True)
     stock_symbol = db.Column(db.String, nullable=False)
@@ -164,13 +164,13 @@ class Transaction_stock(db.Model):
     transaction_id = db.Column(db.Integer, db.ForeignKey(
         Transaction.transaction_id), nullable=False)
     stock_id = db.Column(db.Integer, db.ForeignKey(Stock.stock_id), nullable=False)
-    
+
 class Tag(db.Model):
     tag_id = db.Column(db.Integer, primary_key=True)
     tag_name = db.Column(db.String, unique=True, nullable=False)
     account_tags = db.relationship('Account_tag', backref=db.backref('Tag', uselist=True))
     transaction_tags = db.relationship('Transaction_tag', backref=db.backref('Tag', uselist=True))
-    
+
     def __repr__(self):
         return '<Tag %r>' % self.tag_name
 
@@ -179,12 +179,12 @@ class Transaction_tag(db.Model):
     transaction_id = db.Column(db.Integer, db.ForeignKey(
         Transaction.transaction_id), nullable=False)
     tag_id = db.Column(db.Integer, db.ForeignKey(Tag.tag_id), nullable=False)
-    
+
 class Account_tag(db.Model):
     account_tag_id = db.Column(db.Integer, primary_key=True)
     account_id = db.Column(db.Integer, db.ForeignKey(Account.account_id), nullable=False)
     tag_id = db.Column(db.Integer, db.ForeignKey(Tag.tag_id), nullable=False)
-    
+
 
 def database_test():
     #Test 1: Add and retrieve values from each table
@@ -207,7 +207,7 @@ def database_test():
                            account_name='tester2', account_type='Savings')
     # print(Account.query.filter_by(account_type='Savings').first())
     db.session.add(account_test)
-    db.session.commit()  
+    db.session.commit()
     # print(Account.query.get(1))
     account_selected = Account.query.filter_by(account_type='Savings').first()
     # print(account_selected.account_name)
@@ -237,8 +237,8 @@ def database_test():
     db.session.add(transaction_test)
     db.session.commit()
     transaction_test = Transaction(
-        account_id=account_selected.account_id, 
-        transaction_type='Real Estate', 
+        account_id=account_selected.account_id,
+        transaction_type='Real Estate',
         transaction_value=50)
     # print(Transaction.query.filter_by(account_id=1).first())
     db.session.add(transaction_test)
@@ -254,7 +254,7 @@ def database_test():
     # print(transaction_selected_debt.account_id)
     transaction_selected_re = Transaction.query.filter_by(transaction_type='Real Estate').first()
     # print(transaction_selected_re.account_id)
-    
+
 
     bank_account_test = Bank_account(bank_name='USAA',account_digits='1234')
     # print(Bank_account.query.filter_by(bank_name='USAA').first())
@@ -263,9 +263,9 @@ def database_test():
     # print(Bank_account.query.get(1))
     bank_account_selected = Bank_account.query.filter_by(bank_name='USAA').first()
     # print(bank_account_selected.bank_name)
-    
+
     bank_account_trans_test = Transaction_bank_account(
-        transaction_id=transaction_selected_cash.transaction_id, 
+        transaction_id=transaction_selected_cash.transaction_id,
         bank_account_id=bank_account_selected.bank_account_id)
     # print(Transaction_bank_account.query.filter_by(bank_account_id=1).first())
     db.session.add(bank_account_trans_test)
@@ -284,9 +284,9 @@ def database_test():
     # print(Bond.query.get(1))
     bond_selected = Bond.query.filter_by(name='ex Bond').first()
     # print(bond_selected.maturation_date)
-    
+
     bond_trans_test = Transaction_bond(
-        transaction_id=transaction_selected_bond.transaction_id, 
+        transaction_id=transaction_selected_bond.transaction_id,
         bond_id=bond_selected.bond_id)
     # print(Transaction_bond.query.filter_by(bond_id=1).first())
     db.session.add(bond_trans_test)
@@ -312,9 +312,9 @@ def database_test():
     # # print(Stock_value.query.get(1))
     # stock_value_selected = Stock_value.query.filter_by(stock_id=1).first()
     # # print(stock_value_selected.date)
-    
+
     stock_trans_test = Transaction_stock(
-        transaction_id=transaction_selected_stock.transaction_id, 
+        transaction_id=transaction_selected_stock.transaction_id,
         stock_id=stock_selected.stock_id)
     # print(Transaction_stock.query.filter_by(stock_id=1).first())
     db.session.add(stock_trans_test)
@@ -333,9 +333,9 @@ def database_test():
     # print(Real_estate.query.get(1))
     real_estate_selected = Real_estate.query.filter_by(name='House').first()
     # print(real_estate_selected.name)
-    
+
     re_trans_test = Transaction_real_estate(
-        transaction_id=transaction_selected_re.transaction_id, 
+        transaction_id=transaction_selected_re.transaction_id,
         real_estate_id=real_estate_selected.real_estate_id)
     # print(Transaction_real_estate.query.filter_by(real_estate_id=1).first())
     db.session.add(re_trans_test)
@@ -354,7 +354,7 @@ def database_test():
     # print(Debt.query.get(1))
     debt_selected = Debt.query.filter_by(lender='Jersey Boys').first()
     # print(debt_selected.principal)
-    
+
     debt_trans_test = Transaction_debt(
         transaction_id=transaction_selected_debt.transaction_id, debt_id=debt_selected.debt_id)
     # print(Transaction_debt.query.filter_by(debt_id=1).first())
@@ -377,7 +377,7 @@ def database_test():
     #print(tag_selected.tag_name)
 
     test_trans_tag = Transaction_tag(
-        transaction_id=transaction_selected_cash.transaction_id, 
+        transaction_id=transaction_selected_cash.transaction_id,
         tag_id=tag_selected.tag_id)
     #print(Transaction_tag.query.filter_by(tag_id=1).first())
     db.session.add(test_trans_tag)
@@ -395,10 +395,10 @@ def database_test():
     tag_account_selected = Account_tag.query.filter_by(account_id=1).first()
     #print(tag_account_selected.account_id)
 
-    join_test = db.session.query(Account, Transaction, Transaction_bank_account)
-        .filter_by(account_id=account_selected.account_id)
-        .join(Transaction)
-        .join(Transaction_bank_account)
+    join_test = db.session.query(Account, Transaction, Transaction_bank_account) \
+        .filter_by(account_id=account_selected.account_id) \
+        .join(Transaction) \
+        .join(Transaction_bank_account) \
         .first()
     #print(join_test)
     #print(join_test.Transaction.transaction_id)

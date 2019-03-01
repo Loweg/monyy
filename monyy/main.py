@@ -11,7 +11,7 @@ import json
 @app.route("/")
 def hello():
     # db.drop_all()
-    # db.create_all()
+    db.create_all()
     # db.session.query(Account).delete()
     # db.session.query(User).delete()
     # db.session.query(Transaction).delete()
@@ -20,7 +20,7 @@ def hello():
     # db.session.query(Bond).delete()
     # db.session.query(Transaction_bond).delete()
     # db.session.query(Stock).delete()
-    # #db.session.query(Stock_value).delete()
+    # # db.session.query(Stock_value).delete()
     # db.session.query(Transaction_stock).delete()
     # db.session.query(Debt).delete()
     # db.session.query(Transaction_debt).delete()
@@ -29,7 +29,7 @@ def hello():
     # db.session.query(Transaction_tag).delete()
     # db.session.query(Tag).delete()
     # db.session.query(Account_tag).delete()
-    # db.session.commit()
+    db.session.commit()
     # BAATest()
     # BondTest()
     # DebtTest()
@@ -70,7 +70,7 @@ def register():
             return redirect("/login")
         login_user(user, remember=form.remember_me.data)
         return redirect("/index")
-    return render_template('login.html', title='Register', form=form)
+    return render_template('logout.html', title='Register', form=form)
 
 
 @app.route("/logout")
@@ -78,6 +78,10 @@ def register():
 def logout():
     logout_user()
     return redirect("/login")
+
+@app.route('/help', methods=['GET'])
+def helppage():
+    return render_template('help.html')
 
 
 @app.route("/index", methods=['GET', 'POST'])
@@ -88,6 +92,8 @@ def index():
     bonds = {}
     realestate = {}
     debts = {}
+    net_worth = 0
+    days_left = 0
     baa = BankAccountAccessor()
     ba = BondAccessor()
     da = DebtAccessor()
@@ -118,7 +124,7 @@ def index():
                 transactions[id] = temp
             #cash.update(bank_name= transactions)
             cash[bank_name] = transactions
-    except: 
+    except:
         transactions = {}
         temp = {
                     'name' : "No account",
@@ -134,7 +140,7 @@ def index():
         for account in bond_accounts:
             bond_transactions = ba.getAllTransactions(current_user, account)
             ex_trans = bond_transactions[0]
-            bond_name = ex_trans.Bond.name 
+            bond_name = ex_trans.Bond.name
             temp = {
                 'maturity_date' : str(ex_trans.Bond.maturation_date),
                 'amount' : ex_trans.Bond.value,
@@ -165,7 +171,7 @@ def index():
                 'original_value' : '',
         }
         realestate['none'] = temp
-        
+
     try:
         #debts
         debt_accounts = da.getUserAccounts(current_user)
@@ -193,7 +199,8 @@ def index():
                 'account_associated' : pay_account_name,
             }
             debts[debt_name] = temp
-    except:
+    except Exception as error:
+        print(error)
         temp = {
                 'remaining' : '',
                 'principal' : '',
@@ -276,6 +283,14 @@ def index():
 
                             },
     }
+    try:
+        net_worth = netWorth(current_user)
+    except Exception as error:
+        print(error)
+    try:
+        days_left=Bankrupcy(current_user, net_worth)
+    except Exception as error:
+        print(error)
     cash = json.dumps(cash)
     bonds = json.dumps(bonds)
     realestate = json.dumps(realestate)
@@ -286,7 +301,9 @@ def index():
     # print(realestate)
     # print(debt)
     # print(stocks)
-    return render_template('index.html', 
+    return render_template('index.html',
+                            rampcount = days_left,
+                            networth = net_worth,
                             username = current_user.user_name,
                             cash=cash,
                             stocks=stocks,
@@ -317,11 +334,12 @@ def addAccValues():
         print(error)
 
     return redirect("/index")
-    
+
 @app.route("/index/banktrans", methods=['POST'])
 # @login_required
 def addTransVals():
     baa = BankAccountAccessor()
+
     digits = request.form['digits']
     name = request.form['name']
     day = int(request.form['day'])
@@ -329,9 +347,15 @@ def addTransVals():
     year = int(request.form['year'])
     amount = int(request.form['amount'])
     new_date = date(year,month,day)
-    deduction = request.form['deduction']
-    print(deduction)
+    if request.form['deduction']=="yes" or request.form['deduction']=="Yes" or request.form['deduction']=="Y":
+        deduction = True
+    elif request.form['deduction']=="no" or request.form['deduction']=="No" or request.form['deduction']=="N":
+        deduction = False
+    else:
+        raise Exception("not a valid response")
+    # print(type(deduction))
     try:
+
         info = db.session.query(Account, Transaction, Transaction_bank_account, Bank_account
                 ).join(Transaction
                 ).order_by(Transaction.transaction_id.desc()
@@ -350,6 +374,16 @@ def addTransVals():
     # l = [digits, name, new_date, amount]
     # print(l)
 
+    if deduction:
+        try:
+            baa.makeWithdrawal(current_user, info.Account, amount, name, temp_date=new_date)
+        except Exception as error:
+            print(error)
+    else:
+        try:
+            baa.makeDeposit(current_user, info.Account, amount, name, temp_date=new_date)
+        except Exception as error:
+            print(error)
     # try:
         #def makeAccount(self,temp_user, temp_name, temp_value, temp_bank_name, temp_digits)
     #     baa.makeAccount(current_user, acct_name, balance, bank, acct_num)
@@ -463,4 +497,3 @@ def addDebtVals():
 @app.route('/help')
 def help():
     return render_template('help.html')
-

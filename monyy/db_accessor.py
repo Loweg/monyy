@@ -1,5 +1,5 @@
 from flask import Flask
-from flask_login import UserMixin 
+from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
@@ -16,6 +16,93 @@ def ownershipCheck(temp_user, temp_account):
     #Raise an exception if not
     if not temp_user.user_id == temp_account.user_id:
         raise Exception("This account does not belong to the current user!")
+
+
+def netWorth(temp_user, temp_datetime=datetime.now()):
+    #Make the accessors
+    baa = BankAccountAccessor()
+    ba = BondAccessor()
+    da = DebtAccessor()
+    sa = StockAccessor()
+    ra = RealEstateAccessor()
+    net_worth = 0
+    try:
+        #Get the bank accounts
+        bank_accounts = baa.getUserAccounts(temp_user)
+        for account in bank_accounts:
+            #Get a transaction
+            #getTransactionsOnDate(self,temp_user, temp_account, temp_limit, temp_date):
+            trans = baa.getTransactionsOnDate(temp_user, account, 1, temp_datetime.date())[0]
+            #def getBalance(self,temp_user, temp_account, temp_transaction, temp_date=date.today())
+            balance = baa.getBalance(temp_user, account, trans.Transaction, temp_date=temp_datetime.date())
+            net_worth=net_worth+balance
+        print(net_worth)
+    except Exception as error:
+        print(error)
+    try:
+        #get bond accounts
+        bond_accounts = ba.getUserAccounts(temp_user)
+        for account in bond_accounts:
+            trans = ba.getAllTransactions(temp_user, account)[0]
+            #getBalance(self,temp_user, temp_account, temp_transaction, temp_date=date.today()):
+            balance = ba.getBalance(temp_user, account, trans.Transaction, temp_date=temp_datetime.date())
+            net_worth = net_worth+balance
+        print(net_worth)
+    except Exception as error:
+        print(error)
+    try:
+        #Debt
+        debt_accounts = da.getUserAccounts(temp_user)
+        for account in debt_accounts:
+            #getTransactionsOnDate(self,temp_user, temp_account, temp_limit, temp_date):
+            trans = da.getTransactionsOnDate(temp_user, account, 1, temp_datetime.date())[0]
+            #getBalance(self,temp_user, temp_account, temp_transaction, temp_date=date.today()):
+            balance = da.getBalance(temp_user, account, trans.Transaction, temp_date=temp_datetime.date())
+            net_worth=net_worth+balance
+        print(net_worth)
+    except Exception as error:
+        print(error)
+    try:
+        #Real Estate
+        real_estates = ra.getUserAccounts(temp_user)
+        for account in real_estates:
+            trans = ra.getTransactionsOnDate(temp_user, account, 1, temp_date=temp_datetime.date())[0]
+            balance = ra.getBalance(temp_user, account, trans.Transaction, temp_date=temp_datetime.date())
+            net_worth=net_worth+balance
+        print(net_worth)
+    except Exception as error:
+        print(error)
+    try:
+        #Stocks
+        stock_accounts = sa.getUserAccounts(temp_user)
+        for account in stock_accounts:
+            #getTransactions(self,temp_user, temp_account, temp_limit, temp_date=date.today()):
+            trans = sa.getTransactions(temp_user, account, 1, temp_date=temp_datetime.date())[0]
+            #getBalance(self,temp_user, temp_account, temp_transaction, temp_stock_symbol, temp_datetime=datetime.now()):
+            balance = sa.getBalance(temp_user, account, trans.Transaction, trans.Stock.stock_symbol, temp_datetime=temp_datetime)
+            net_worth=net_worth+balance
+        print(net_worth)
+    except Exception as error:
+        print(error)
+    return net_worth
+
+def Bankrupcy(temp_user, net_worth_today):
+    thirty_days = datetime.now()-timedelta(days=30)
+    net_worth_past = netWorth(temp_user, temp_datetime=thirty_days)
+    m = net_worth_today-net_worth_past
+    m = m/30
+    if m<0:
+        days=int(net_worth_today*m)
+        days=abs(days)
+        num_days="Going down: "+str(days)
+    else:
+        days = int(net_worth_today*m)
+        num_days="Going up: "+str(days)
+    return num_days
+
+
+
+
 
 class BankAccountAccessor():
     #Get all accounts under one user
@@ -35,18 +122,15 @@ class BankAccountAccessor():
         #Check that the account actually belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Make a query; joining account, transaction, bank account transaction, and bank account. Get the list of all
-        transactions = db.session.query(Account, 
-                                        Transaction, 
-                                        Transaction_bank_account, 
-                                        Bank_account) 
-            .filter_by(account_id=temp_account.account_id) 
-            .join(Transaction) 
-            .order_by(Transaction.transaction_id.desc()) 
-            .join(Transaction_bank_account) 
-            .join(Bank_account) 
+        transactions = db.session.query(Account, Transaction, Transaction_bank_account, Bank_account) \
+            .filter_by(account_id=temp_account.account_id) \
+            .join(Transaction) \
+            .order_by(Transaction.transaction_id.desc()) \
+            .join(Transaction_bank_account) \
+            .join(Bank_account) \
             .all()
         #Raise an exception if they have none
         if len(transactions) == 0:
@@ -59,20 +143,20 @@ class BankAccountAccessor():
         #Check that the account actually belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Make a query; joining account, transaction, bank account transaction, and bank account. Get the list of all
-        transactions = db.session.query(Account, 
-                                        Transaction, 
-                                        Transaction_bank_account, 
-                                        Bank_account)
-            .filter_by(account_id=temp_account.account_id)
-            .join(Transaction)
-            .order_by(Transaction.transaction_date.desc())
-            .order_by(Transaction.transaction_id.desc())
-            .join(Transaction_bank_account)
-            .join(Bank_account)
-            .limit(temp_limit)
+        transactions = db.session.query(Account,
+                                        Transaction,
+                                        Transaction_bank_account,
+                                        Bank_account) \
+            .filter_by(account_id=temp_account.account_id) \
+            .join(Transaction) \
+            .order_by(Transaction.transaction_date.desc()) \
+            .order_by(Transaction.transaction_id.desc()) \
+            .join(Transaction_bank_account) \
+            .join(Bank_account) \
+            .limit(temp_limit) \
             .all()
         #Raise an exception if they have none
         if len(transactions) == 0:
@@ -84,21 +168,21 @@ class BankAccountAccessor():
         #Check that the account actually belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Make a query; joining account, transaction, bank account transaction, and bank account. Get the list of all
-        transactions = db.session.query(Account, 
-                                        Transaction, 
-                                        Transaction_bank_account, 
-                                        Bank_account)
-            .filter_by(account_id=temp_account.account_id)
-            .join(Transaction)
-            .filter(Transaction.transaction_date<=temp_date)
-            .order_by(Transaction.transaction_date.desc())
-            .order_by(Transaction.transaction_id.desc())
-            .join(Transaction_bank_account)
-            .join(Bank_account)
-            .limit(temp_limit)
+        transactions = db.session.query(Account,
+                                        Transaction,
+                                        Transaction_bank_account,
+                                        Bank_account) \
+            .filter_by(account_id=temp_account.account_id) \
+            .join(Transaction) \
+            .filter(Transaction.transaction_date<=temp_date) \
+            .order_by(Transaction.transaction_date.desc()) \
+            .order_by(Transaction.transaction_id.desc()) \
+            .join(Transaction_bank_account) \
+            .join(Bank_account) \
+            .limit(temp_limit) \
             .all()
         #Raise an exception if they have none
         if len(transactions) == 0:
@@ -111,38 +195,37 @@ class BankAccountAccessor():
         #check that the account belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
-        # Query on the transaction where account_id = temo_account id,
-        # sum on the transaction value where the 
-        # transaction id <= temp_transaction_id and date <= Date
-        query = db.session.query(func.sum(Transaction.transaction_value)
-            .label('balance'))
-            .filter_by(account_id=temp_account.account_id)
-            .filter(Transaction.transaction_id<=temp_transaction.transaction_id)
-            .filter(Transaction.transaction_date<=temp_date)
-            .first()
+        #Query on the transaction where account_id = temo_account id, sum on the transaction value where the transaction id <= temp_transaction_id and date <= Date
+        query = db.session.query(func.sum(Transaction.transaction_value
+            ).label('balance')
+            ).order_by(Transaction.transaction_date.desc()
+            ).filter_by(account_id=temp_account.account_id
+            ).filter(Transaction.transaction_id<=temp_transaction.transaction_id
+            ).filter(Transaction.transaction_date<=temp_date
+            ).first()
         #Return the int for the balance
         return int(query.balance)
 
     #Make a new transaction
-    def makeTransaction(self, 
-                        temp_user, 
-                        temp_account, 
-                        temp_type, 
-                        temp_value, 
+    def makeTransaction(self,
+                        temp_user,
+                        temp_account,
+                        temp_type,
+                        temp_value,
                         note, temp_date=date.today()):
         #check that the account belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Find a prior transaction on this account, joining on transaction_ba.
         try:
-            query = db.session.query(Account, Transaction, Transaction_bank_account)
-                .filter_by(account_id=temp_account.account_id)
-                .join(Transaction)
-                .join(Transaction_bank_account)
+            query = db.session.query(Account, Transaction, Transaction_bank_account) \
+                .filter_by(account_id=temp_account.account_id) \
+                .join(Transaction) \
+                .join(Transaction_bank_account) \
                 .first()
             #Get the Bank Account id from the Transaction BA
             bank_id = query.Transaction_bank_account.bank_account_id
@@ -150,19 +233,19 @@ class BankAccountAccessor():
             raise Exception("There are no prior transactions! This account should not exist!")
         #Make a new transaction with the input information
         try:
-            new_transaction = Transaction(account_id=temp_account.account_id, 
-                transaction_type=temp_type, 
-                transaction_value=temp_value, 
-                transaction_date=temp_date, 
+            new_transaction = Transaction(account_id=temp_account.account_id,
+                transaction_type=temp_type,
+                transaction_value=temp_value,
+                transaction_date=temp_date,
                 transaction_note=note)
             db.session.add(new_transaction)
             db.session.commit()
         except Exception as error:
             raise Exception("Could not create transaction! " + str(error))
-        new_transaction = Transaction.query.filter_by(account_id=temp_account.account_id)
-            .filter_by(transaction_type=temp_type)
-            .filter_by(transaction_value=temp_value)
-            .filter_by(transaction_date=temp_date)
+        new_transaction = Transaction.query.filter_by(account_id=temp_account.account_id) \
+            .filter_by(transaction_type=temp_type) \
+            .filter_by(transaction_value=temp_value) \
+            .filter_by(transaction_date=temp_date) \
             .first()
         if new_transaction is None:
             raise Exception("Error making new transaction!")
@@ -180,22 +263,22 @@ class BankAccountAccessor():
                 user_id=temp_user.user_id, account_name=temp_name, account_type='BANK_ACCOUNT')
             db.session.add(new_account)
             db.session.commit()
-            new_account = Account.query.filter_by(user_id=temp_user.user_id )
-                .filter_by(account_name=temp_name )
-                .filter_by(account_type='BANK_ACCOUNT' )
+            new_account = Account.query.filter_by(user_id=temp_user.user_id ) \
+                .filter_by(account_name=temp_name ) \
+                .filter_by(account_type='BANK_ACCOUNT' ) \
                 .first()
         except Exception as error:
             raise Exception("Could not create account! " + str(error))
         #make a first transaction with same values referencing the account id
         try:
-            new_transaction = Transaction(account_id=new_account.account_id, 
-                transaction_type='DEPOSIT', 
-                transaction_value=temp_value, 
+            new_transaction = Transaction(account_id=new_account.account_id,
+                transaction_type='DEPOSIT',
+                transaction_value=temp_value,
                 transaction_note="Opening account")
             db.session.add(new_transaction)
             db.session.commit()
-            new_transaction = Transaction.query.filter_by(account_id=new_account.account_id)
-                .filter_by(transaction_type='DEPOSIT' )
+            new_transaction = Transaction.query.filter_by(account_id=new_account.account_id) \
+                .filter_by(transaction_type='DEPOSIT' ) \
                 .first()
         except Exception as error:
             raise Exception("Could not create account! Error making first transaction! "+str(error))
@@ -204,15 +287,15 @@ class BankAccountAccessor():
             new_bank_account = Bank_account(bank_name=temp_bank_name, account_digits=temp_digits)
             db.session.add(new_bank_account)
             db.session.commit()
-            new_bank_account = Bank_account.query.filter_by(bank_name=temp_bank_name)
-                .filter_by(account_digits=temp_digits)
+            new_bank_account = Bank_account.query.filter_by(bank_name=temp_bank_name) \
+                .filter_by(account_digits=temp_digits) \
                 .first()
         except Exception as error:
             raise Exception("Could not create account! Error making bank account! "+str(error))
         #make a transaction ba with the transaction id
         try:
             new_transaction_ba = Transaction_bank_account(
-                transaction_id=new_transaction.transaction_id, 
+                transaction_id=new_transaction.transaction_id,
                 bank_account_id=new_bank_account.bank_account_id)
             db.session.add(new_transaction_ba)
             db.session.commit()
@@ -244,12 +327,12 @@ class BankAccountAccessor():
             raise Exception(error)
 
     #Do transfer
-    def makeTransfer(self, 
-                     temp_user, 
-                     source_account, 
-                     dest_account, 
-                     temp_value, 
-                     temp_note, 
+    def makeTransfer(self,
+                     temp_user,
+                     source_account,
+                     dest_account,
+                     temp_value,
+                     temp_note,
                      temp_date=date.today()):
         #Make sure the value for the source transaction is negative, since we are removing money
         #And that the value for the destination is positive, since money is being added
@@ -268,7 +351,7 @@ class BankAccountAccessor():
             raise Exception(error)
 
      #Edit 4 digits
-    
+
     def editDigits(self,temp_bank_account_id, temp_digits):
         #Get the account
         temp_bank_account = Bank_account.query.filter_by(bank_account_id=temp_bank_account_id).first()
@@ -284,7 +367,7 @@ class BankAccountAccessor():
         if temp_bank_account is None:
             raise Exception("There is no bank account with that id!")
         temp_bank_account.bank_name = temp_bank_name
-        db.session.commit()  
+        db.session.commit()
 
 
 class BondAccessor():
@@ -306,7 +389,7 @@ class BondAccessor():
         #Check that the account actually belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Make a query; joining account, transaction, bank account transaction, and bank account. Get the list of all
         transactions = db.session.query(Account, Transaction, Transaction_bond, Bond
@@ -325,11 +408,12 @@ class BondAccessor():
         #check that the account belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Query on the transaction where account_id = temo_account id, sum on the transaction value where the transaction id <= temp_transaction_id and date <= Date
         query = db.session.query(func.sum(Transaction.transaction_value
             ).label('balance')
+            ).order_by(Transaction.transaction_date.desc()
             ).filter_by(account_id=temp_account.account_id
             ).filter(Transaction.transaction_id<=temp_transaction.transaction_id
             ).filter(Transaction.transaction_date<=temp_date
@@ -396,7 +480,7 @@ class BondAccessor():
         #check that the account belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Find a prior transaction on this account, joining on transaction_bo.
         query = db.session.query(Account, Transaction, Transaction_bond, Bond
@@ -414,10 +498,10 @@ class BondAccessor():
         bond_id = query.Transaction_bond.bond_id
         #Make a new transaction with the input information
         try:
-            new_transaction = Transaction(account_id=temp_account.account_id, 
-                transaction_type=temp_type, 
-                transaction_value=temp_value, 
-                transaction_date=temp_date, 
+            new_transaction = Transaction(account_id=temp_account.account_id,
+                transaction_type=temp_type,
+                transaction_value=temp_value,
+                transaction_date=temp_date,
                 transaction_note=note)
             db.session.add(new_transaction)
             db.session.commit()
@@ -480,7 +564,7 @@ class StockAccessor():
         #Check that the account actually belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Make a query; joining account, transaction, bank account transaction, and bank account. Get the list of all
         transactions = db.session.query(Account, Transaction, Transaction_stock, Stock
@@ -503,7 +587,7 @@ class StockAccessor():
         #Check that the account actually belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Make a query; joining account, transaction, bank account transaction, and bank account. Get the list of all
         transactions = db.session.query(Account, Transaction, Transaction_stock, Stock
@@ -531,7 +615,7 @@ class StockAccessor():
         except Exception as error:
             raise Exception("Could not get value!"+str(error))
 
-        
+
         #Return the int for the balance
         return int(query.balance)
 
@@ -539,12 +623,13 @@ class StockAccessor():
         #check that the account belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Query on the transaction where account_id = temo_account id, sum on the transaction value where the transaction id <= temp_transaction_id and date <= Date
         temp_date = temp_datetime.date()
         query = db.session.query(func.sum(Transaction.transaction_value
             ).label('balance')
+            ).order_by(Transaction.transaction_date.desc()
             ).filter_by(account_id=temp_account.account_id
             ).filter(Transaction.transaction_id<=temp_transaction.transaction_id
             ).filter(Transaction.transaction_date<=temp_date
@@ -582,9 +667,9 @@ class StockAccessor():
             raise Exception("Could not create account! " + str(error))
         #make a first transaction with same values referencing the account id
         try:
-            new_transaction = Transaction(account_id=new_account.account_id, 
-                transaction_type='TRANSFER', 
-                transaction_value=temp_num_stocks, 
+            new_transaction = Transaction(account_id=new_account.account_id,
+                transaction_type='TRANSFER',
+                transaction_value=temp_num_stocks,
                 transaction_note="Opening account")
             db.session.add(new_transaction)
             db.session.commit()
@@ -626,7 +711,7 @@ class StockAccessor():
             self.makeTransaction(temp_user, dest_account, "TRANSFER", temp_num_stocks, temp_note, temp_date = temp_datetime.date())
         except Exception as error:
             raise Exception(error)
-            
+
     def sellStocks(self,temp_user, source_account, dest_account,temp_stock_symbol, temp_num_stocks, temp_note, temp_datetime=datetime.today()):
         if temp_num_stocks < 0:
             temp_num_stocks = -temp_num_stocks
@@ -643,7 +728,7 @@ class StockAccessor():
     def makeTransaction(self,temp_user, temp_account, temp_type, temp_value, note, temp_date=date.today()):
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Find a prior transaction on this account, joining on transaction_ba.
         query = db.session.query(Account, Transaction, Transaction_stock).filter_by(account_id=temp_account.account_id).join(Transaction).join(Transaction_stock).first()
@@ -651,10 +736,10 @@ class StockAccessor():
         stock_id = query.Transaction_stock.stock_id
         #Make a new transaction with the input information
         try:
-            new_transaction = Transaction(account_id=temp_account.account_id, 
-                transaction_type=temp_type, 
-                transaction_value=temp_value, 
-                transaction_date=temp_date, 
+            new_transaction = Transaction(account_id=temp_account.account_id,
+                transaction_type=temp_type,
+                transaction_value=temp_value,
+                transaction_date=temp_date,
                 transaction_note=note)
             db.session.add(new_transaction)
             db.session.commit()
@@ -685,13 +770,13 @@ class DebtAccessor():
             raise Exception("This user has no debt!")
         #Return that list
         return accounts
-        
+
     #get all transactions under one account
     def getAllTransactions(self,temp_user, temp_account):
         #Check that the account actually belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Make a query; joining account, transaction, bank account transaction, and bank account. Get the list of all
         transactions = db.session.query(Account, Transaction, Transaction_debt, Debt
@@ -712,7 +797,7 @@ class DebtAccessor():
         #Check that the account actually belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Make a query; joining account, transaction, bank account transaction, and bank account. Get the list of all
         transactions = db.session.query(Account, Transaction, Transaction_debt, Debt
@@ -734,7 +819,7 @@ class DebtAccessor():
         #Check that the account actually belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Make a query; joining account, transaction, bank account transaction, and bank account. Get the list of all
         transactions = db.session.query(Account, Transaction, Transaction_debt, Debt
@@ -758,11 +843,12 @@ class DebtAccessor():
         #check that the account belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Query on the transaction where account_id = temo_account id, sum on the transaction value where the transaction id <= temp_transaction_id and date <= Date
         query = db.session.query(func.sum(Transaction.transaction_value
             ).label('balance')
+            ).order_by(Transaction.transaction_date.desc()
             ).filter_by(account_id=temp_account.account_id
             ).filter(Transaction.transaction_id<=temp_transaction.transaction_id
             ).filter(Transaction.transaction_date<=temp_date
@@ -775,7 +861,7 @@ class DebtAccessor():
         #check that the account belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Find a prior transaction on this account, joining on transaction_ba.
         query = db.session.query(Account, Transaction, Transaction_debt).filter_by(account_id=temp_account.account_id).join(Transaction).join(Transaction_debt).first()
@@ -783,10 +869,10 @@ class DebtAccessor():
         debt_id = query.Transaction_debt.debt_id
         #Make a new transaction with the input information
         try:
-            new_transaction = Transaction(account_id=temp_account.account_id, 
-                transaction_type=temp_type, 
-                transaction_value=temp_value, 
-                transaction_date=temp_date, 
+            new_transaction = Transaction(account_id=temp_account.account_id,
+                transaction_type=temp_type,
+                transaction_value=temp_value,
+                transaction_date=temp_date,
                 transaction_note=note)
             db.session.add(new_transaction)
             db.session.commit()
@@ -821,9 +907,9 @@ class DebtAccessor():
             raise Exception("Could not create account! " + str(error))
         #make a first transaction with same values referencing the account id
         try:
-            new_transaction = Transaction(account_id=new_account.account_id, 
-                transaction_type='WITHDRAWAL', 
-                transaction_value=temp_value, 
+            new_transaction = Transaction(account_id=new_account.account_id,
+                transaction_type='WITHDRAWAL',
+                transaction_value=temp_value,
                 transaction_note="Opening account")
             db.session.add(new_transaction)
             db.session.commit()
@@ -891,7 +977,7 @@ class DebtAccessor():
             raise Exception(error)
 
      #Edit 4 digits
-    
+
     def editDate(self,temp_debt_id, temp_date):
         #Get the account
         temp_debt = Debt.query.filter_by(debt_id=temp_debt_id).first()
@@ -931,7 +1017,7 @@ class DebtAccessor():
         if temp_debt is None:
             raise Exception("There is no debt with that id!")
         temp_debt.lender = temp_name
-        db.session.commit() 
+        db.session.commit()
 
 class RealEstateAccessor():
     def getUserAccounts(self, temp_user):
@@ -944,13 +1030,13 @@ class RealEstateAccessor():
             raise Exception("This user has no real estate!")
         #Return that list
         return accounts
-        
+
     #get all transactions under one account
     def getAllTransactions(self,temp_user, temp_account):
         #Check that the account actually belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Make a query; joining account, transaction, bank account transaction, and bank account. Get the list of all
         transactions = db.session.query(Account, Transaction, Transaction_real_estate, Real_estate
@@ -970,7 +1056,7 @@ class RealEstateAccessor():
         #Check that the account actually belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Make a query; joining account, transaction, bank account transaction, and bank account. Get the list of all
         transactions = db.session.query(Account, Transaction, Transaction_real_estate, Real_estate
@@ -992,7 +1078,7 @@ class RealEstateAccessor():
         #Check that the account actually belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Make a query; joining account, transaction, bank account transaction, and bank account. Get the list of all
         transactions = db.session.query(Account, Transaction, Transaction_real_estate, Real_estate
@@ -1016,11 +1102,12 @@ class RealEstateAccessor():
         #check that the account belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Query on the transaction where account_id = temo_account id, sum on the transaction value where the transaction id <= temp_transaction_id and date <= Date
         query = db.session.query(func.sum(Transaction.transaction_value
             ).label('balance')
+            ).order_by(Transaction.transaction_date.desc()
             ).filter_by(account_id=temp_account.account_id
             ).filter(Transaction.transaction_id<=temp_transaction.transaction_id
             ).filter(Transaction.transaction_date<=temp_date
@@ -1033,7 +1120,7 @@ class RealEstateAccessor():
         #check that the account belongs to the user
         try:
             ownershipCheck(temp_user, temp_account)
-        except Exception as error: 
+        except Exception as error:
             raise Exception(error)
         #Find a prior transaction on this account, joining on transaction_ba.
         query = db.session.query(Account, Transaction, Transaction_real_estate
@@ -1045,10 +1132,10 @@ class RealEstateAccessor():
         real_estate_id = query.Transaction_real_estate.real_estate_id
         #Make a new transaction with the input information
         try:
-            new_transaction = Transaction(account_id=temp_account.account_id, 
-                transaction_type=temp_type, 
-                transaction_value=temp_value, 
-                transaction_date=temp_date, 
+            new_transaction = Transaction(account_id=temp_account.account_id,
+                transaction_type=temp_type,
+                transaction_value=temp_value,
+                transaction_date=temp_date,
                 transaction_note=note)
             db.session.add(new_transaction)
             db.session.commit()
@@ -1081,9 +1168,9 @@ class RealEstateAccessor():
             raise Exception("Could not create account! " + str(error))
         #make a first transaction with same values referencing the account id
         try:
-            new_transaction = Transaction(account_id=new_account.account_id, 
-                transaction_type='DEPOSIT', 
-                transaction_value=temp_estimate, 
+            new_transaction = Transaction(account_id=new_account.account_id,
+                transaction_type='DEPOSIT',
+                transaction_value=temp_estimate,
                 transaction_note="Opening account")
             db.session.add(new_transaction)
             db.session.commit()
@@ -1129,7 +1216,7 @@ class RealEstateAccessor():
         if temp_real_estate is None:
             raise Exception("There is no real estate with that id!")
         temp_real_estate.name = temp_name
-        db.session.commit() 
+        db.session.commit()
 
 class TagAccessor():
 
@@ -1162,7 +1249,7 @@ class TagAccessor():
             db.session.add(tag_check)
             db.session.commit()
             tag_check = Tag.query().filter_by(tag_name = temp_tag_name).first()
-        #check to see if this transaction already has this tag   
+        #check to see if this transaction already has this tag
         else:
             try:
                 t_tag = self.getTransactionTag(temp_transaction, temp_tag_name)
@@ -1234,7 +1321,7 @@ def BAATest():
     a1 = accounts[0]
     a2 = accounts[1]
     a3 = accounts[2]
-    
+
     t = baa.getAllTransactions(u, a1)
     print(t[0])
     #def makeDeposit(self,temp_user, temp_account, temp_value, temp_note, temp_date=date.today()):
@@ -1302,13 +1389,13 @@ def DebtTest():
     da.makeAccount(u, 'test two', -5, 'Bugs Bunny', a4, date(2019, 2, 18))
     da.makeAccount(u, 'test three', 17, 'Thanos', a4, date(2019, 4, 26))
     accounts = da.getUserAccounts(u)
-    
+
     #assert(len(accounts)==3)
     a1 = accounts[0]
     a2 = accounts[1]
     a3 = accounts[2]
 
-    
+
     t = da.getAllTransactions(u, a1)
     print(t[0])
     #def makeDeposit(self,temp_user, temp_account, temp_value, temp_note, temp_date=date.today()):
@@ -1369,7 +1456,7 @@ def REATest():
     a1 = accounts[0]
     a2 = accounts[1]
     a3 = accounts[2]
-    
+
     t = raa.getAllTransactions(u, a2)
     print(t[0])
     temp_real_estate = Real_estate.query.filter_by(name='Avenger\'s Tower').first()
@@ -1416,7 +1503,7 @@ def StockTest():
     a1 = accounts[0]
     a2 = accounts[1]
     a3 = accounts[2]
-    
+
     t = sa.getAllTransactions(u, a1)
     print(t[0])
     temp_stock = Stock.query.filter_by(stock_symbol='DIS').first()
@@ -1433,5 +1520,3 @@ def StockTest():
         print(trans.Transaction)
         print(sa.getBalance(u,a1,trans.Transaction, 'DIS'))
     #makeTransfer(self,temp_user, source_account, dest_account, temp_value, temp_note, temp_date=date.today()):
-
-
